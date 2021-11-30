@@ -37,16 +37,45 @@ jobs:
       - name: Run tests
         run: sbt "project lightgbm" test
 
-      - name: Set up Python 3.8
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.8
+  python-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
 
-      - name: Create Anaconda environment
-        run: conda env create -f environment.yaml
+      - name: Set up JDK 1.8
+        uses: actions/setup-java@v1
+        with:
+          java-version: 1.8
+
+      - name: Cache sbt
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.sbt
+            ~/.ivy2/cache
+            ~/.coursier/cache/v1
+            ~/.cache/coursier/v1
+          key: ${{ runner.os }}-sbt-cache-v2-${{ hashFiles('**/*.sbt') }}-${{ hashFiles('project/build.properties') }}
+
+      - name: Download datasets
+        run: |
+          mkdir -p ~/work/SynapseML/SynapseML/target/scala-2.12/datasets
+          cd "$_"
+          wget -q https://mmlspark.blob.core.windows.net/installers/datasets-2021-07-27.tgz
+          tar -xzvf datasets-2021-07-27.tgz
+          ls -la
+
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          activate-environment: synapseml
+          environment-file: environment.yaml
+          python-version: 3.8
+          auto-activate-base: false
+      - run: |
+          conda info
+          conda list
 
       - name: Run python tests
         run: |
-          source activate synapseml
           (timeout 5m sbt setup) || (echo "retrying" && timeout 5m sbt setup) || (echo "retrying" && timeout 5m sbt setup)
           (sbt coverage testPython) || (sbt coverage testPython) || (sbt coverage testPython)
