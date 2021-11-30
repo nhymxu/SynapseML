@@ -36,3 +36,17 @@ jobs:
 
       - name: Run tests
         run: sbt "project lightgbm" test
+
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Create Anaconda environment
+        run: conda env create -f environment.yaml
+
+      - name: Run python tests
+        run: |
+          source activate synapseml
+          (timeout 5m sbt setup) || (echo "retrying" && timeout 5m sbt setup) || (echo "retrying" && timeout 5m sbt setup)
+          (sbt coverage testPython) || (sbt coverage testPython) || (sbt coverage testPython)
